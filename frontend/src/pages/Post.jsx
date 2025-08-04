@@ -12,6 +12,9 @@ import { Send, Lightbulb, Loader2, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { createPost } from "../api/post";
+import { useNavigate } from "react-router-dom";
 
 // Zod schema for form validation
 const postSchema = z.object({
@@ -22,12 +25,27 @@ const postSchema = z.object({
 const CreatePostPage = () => {
   const [tags, setTags] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: createPost,
+    onSuccess: (data) => {
+      console.log("Post created successfully!", data);
+      setIsSaving(false);
+      // Optionally redirect or show a success message
+    },
+    onError: (error) => {
+      console.error("Error creating post:", error);
+      setIsSaving(false);
+      // Optionally show an error message
+    },
+  });
 
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(postSchema),
   });
@@ -47,9 +65,14 @@ const CreatePostPage = () => {
   }, [titleValue, contentValue, isDirty]);
 
   const onSubmit = async (data) => {
-    const postData = { ...data, tags };
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log("Post Data:", postData);
+    setIsSaving(true);
+    mutate({ ...data, tags });
+
+    // Reset form or redirect after successful submission
+    setTags([]);
+    setIsSaving(false);
+    console.log("Form submitted:", data);
+    navigate("/");
   };
 
   return (
@@ -129,14 +152,14 @@ const CreatePostPage = () => {
                   <Button
                     type="submit"
                     className="w-full h-11 text-base"
-                    disabled={isSubmitting}
+                    disabled={isPending}
                   >
-                    {isSubmitting ? (
+                    {isPending ? (
                       <Loader2 className="animate-spin" />
                     ) : (
                       <Send className="mr-2 h-4 w-4" />
                     )}
-                    {isSubmitting ? "Publishing..." : "Publish Post"}
+                    {isPending ? "Publishing..." : "Publish Post"}
                   </Button>
                 </div>
               </div>

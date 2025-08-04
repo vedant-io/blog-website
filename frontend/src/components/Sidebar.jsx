@@ -1,28 +1,24 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Send } from "lucide-react";
+import { ArrowUpRight, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { useQuery } from "@tanstack/react-query";
+import { getFeaturedPosts, getPopularTags } from "../api/post"; // 1. Import your API functions
 
-// This is the redesigned Sidebar component with more features.
 const Sidebar = () => {
-  // Placeholder data
-  const featuredPosts = [
-    { id: 1, title: "The Art of Minimalist Design" },
-    { id: 5, title: "A Guide to Modern CSS" },
-    { id: 6, title: "Why Every Developer Needs a Blog" },
-  ];
+  // 2. Fetch data for Featured Posts
+  const { data: featuredPosts, isLoading: isFeaturedLoading } = useQuery({
+    queryKey: ["featuredPosts"],
+    queryFn: getFeaturedPosts,
+  });
 
-  const popularTags = [
-    "React",
-    "JavaScript",
-    "Design",
-    "Node.js",
-    "CSS",
-    "Tutorial",
-  ];
+  // 3. Fetch data for Popular Tags
+  const { data: popularTags, isLoading: areTagsLoading } = useQuery({
+    queryKey: ["popularTags"],
+    queryFn: getPopularTags,
+  });
 
   return (
     <motion.aside
@@ -34,30 +30,45 @@ const Sidebar = () => {
       {/* Featured Posts Section */}
       <div className="p-6 bg-zinc-100/70 dark:bg-zinc-800/70 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Featured Posts</h3>
-        <ul className="space-y-4">
-          {featuredPosts.map((post) => (
-            <li key={post.id}>
-              <Link to={`/post/${post.id}`} className="group flex items-start">
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground mr-3 mt-1 flex-shrink-0" />
-                <span className="font-medium group-hover:text-primary transition-colors">
-                  {post.title}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {isFeaturedLoading ? (
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <ul className="space-y-4">
+            {featuredPosts?.map((post) => (
+              <li key={post._id}>
+                <Link
+                  to={`/post/${post._id}`}
+                  className="group flex items-start"
+                >
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground mr-3 mt-1 flex-shrink-0" />
+                  <span className="font-medium group-hover:text-primary transition-colors">
+                    {post.title}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Popular Tags Section */}
       <div className="p-6 bg-zinc-100/70 dark:bg-zinc-800/70 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Popular Tags</h3>
-        <div className="flex flex-wrap gap-2">
-          {popularTags.map((tag) => (
-            <Button key={tag} variant="secondary" size="sm" asChild>
-              <Link to={`/tag/${tag.toLowerCase()}`}>{tag}</Link>
-            </Button>
-          ))}
-        </div>
+        {areTagsLoading ? (
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {popularTags?.map(({ tag }) => (
+              <Button key={tag} variant="secondary" size="sm" asChild>
+                <Link to={`/tag/${tag.toLowerCase()}`}>{tag}</Link>
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Newsletter Section */}

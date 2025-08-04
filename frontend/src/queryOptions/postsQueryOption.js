@@ -5,5 +5,6 @@ export const getAllPostsQueryOption = () => {
   return queryOptions({
     queryKey: ["allposts"],
     queryFn: getAllPosts,
+    staleTime: 10000,
   });
 };

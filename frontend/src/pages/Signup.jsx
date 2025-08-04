@@ -1,28 +1,48 @@
-import React from "react";
-// 1. IMPORT the SignUpForm component you created
-import { SignUpForm } from "@/components/SignUpForm"; // Adjust this path if needed
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "../api/auth";
+import { SignUpForm } from "@/components/SignUpForm"; // Adjust path if needed
+import { Loader2 } from "lucide-react";
 
-const Signup = () => {
+const SignUpPage = () => {
+  const navigate = useNavigate();
+
+  // This query checks if a user is already logged in.
+  const { data: currentUser, isLoading } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: getMe,
+    retry: false, // Don't retry if the user is not logged in (which is expected)
+  });
+
+  // This effect runs when the query finishes. If a user is found, it redirects.
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/");
+    }
+  }, [currentUser, navigate]);
+
+  // While checking the auth status, display a full-screen loader.
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If a user is found, render nothing while the useEffect handles the redirect.
+  // This prevents the form from flashing on the screen for logged-in users.
+  if (currentUser) {
+    return null;
+  }
+
+  // If loading is finished and there's no user, it's safe to show the form.
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      {/* Left Side: Branding */}
-      <div className="hidden bg-zinc-100 lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
-          Your Blog Awaits
-        </h1>
-        <p className="mt-4 text-zinc-600">
-          Join a community of writers and thinkers. <br /> Share your story with
-          the world.
-        </p>
-      </div>
-
-      {/* Right Side: Form */}
-      <div className="flex items-center justify-center py-12">
-        {/* 2. Now React knows what to render here */}
-        <SignUpForm />
-      </div>
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <SignUpForm />
     </div>
   );
 };
 
-export default Signup;
+export default SignUpPage;

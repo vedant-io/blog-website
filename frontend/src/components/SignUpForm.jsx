@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,43 +17,50 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Mail, Lock, BookUser, User, Loader2 } from "lucide-react";
 import GoogleIconUrl from "../assets/google-icon-logo.svg";
-import { useQuery } from "@tanstack/react-query";
-import { signup_endpoint } from "../api/auth";
+import { useMutation } from "@tanstack/react-query";
+import { signupUser } from "../api/auth"; // 1. Import getMe API function
 
 const signupSchema = z.object({
   username: z.string().min(1, "Username is required"),
-  email: z.email("Invalid email address").min(1, "Email is required"),
+  email: z.string().email("Invalid email address").min(1, "Email is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export const SignUpForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-
-  const { data } = useQuery({
-    queryKey: ["signupData"],
-    queryFn: signup_endpoint,
-  });
+  const navigate = useNavigate();
 
   const {
     register,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = async (data) => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log(data);
-    } catch (error) {
-      setError("email", {
-        type: "manual",
-        message: "An error occurred while signing up. Please try again.",
+  const { mutate, isPending } = useMutation({
+    mutationFn: signupUser,
+    onSuccess: (data) => {
+      console.log("Signup successful!", data);
+      navigate("/");
+    },
+    onError: (error) => {
+      setError("root", {
+        message:
+          error.response?.data?.message || "An unexpected error occurred.",
       });
       console.error("Sign up error:", error);
-    }
+    },
+  });
+
+  const onSubmit = (data) => {
+    mutate(data);
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:3000/api/auth/google";
+    navigate("/profile");
   };
 
   return (
@@ -81,6 +88,7 @@ export const SignUpForm = () => {
               variant="outline"
               className="w-full flex items-center justify-center h-11"
               type="button"
+              onClick={handleGoogleLogin}
             >
               <img
                 src={GoogleIconUrl}
@@ -101,7 +109,6 @@ export const SignUpForm = () => {
               </div>
             </div>
 
-            {/* LAYOUT CHANGE: This is now a responsive 2-column grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="username">Username</Label>
@@ -110,16 +117,15 @@ export const SignUpForm = () => {
                   <Input
                     id="username"
                     placeholder="your_username"
-                    required
                     className="pl-9 h-11"
                     {...register("username")}
                   />
-                  {errors.username && (
-                    <span className="text-red-500 text-sm">
-                      {errors.username.message}
-                    </span>
-                  )}
                 </div>
+                {errors.username && (
+                  <p className="text-red-500 text-sm px-1">
+                    {errors.username.message}
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -130,19 +136,17 @@ export const SignUpForm = () => {
                     id="email"
                     type="email"
                     placeholder="m@example.com"
-                    required
                     className="pl-9 h-11"
                     {...register("email")}
                   />
-                  {errors.email && (
-                    <span className="text-red-500 text-sm">
-                      {errors.email.message}
-                    </span>
-                  )}
                 </div>
+                {errors.email && (
+                  <p className="text-red-500 text-sm px-1">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
-              {/* LAYOUT CHANGE: Password field now spans both columns */}
               <div className="grid gap-2 md:col-span-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative flex items-center">
@@ -151,7 +155,6 @@ export const SignUpForm = () => {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    required
                     className="pl-9 pr-10 h-11"
                     {...register("password")}
                   />
@@ -170,21 +173,26 @@ export const SignUpForm = () => {
                   </Button>
                 </div>
                 {errors.password && (
-                  <span className="text-red-500 text-sm">
+                  <p className="text-red-500 text-sm px-1">
                     {errors.password.message}
-                  </span>
+                  </p>
                 )}
               </div>
             </div>
+            {errors.root && (
+              <p className="text-red-500 text-sm text-center -mt-2">
+                {errors.root.message}
+              </p>
+            )}
           </CardContent>
 
           <CardFooter className="flex flex-col items-center gap-4 p-6 pt-0">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isPending}
               className="w-full h-11 text-base hover:bg-primary/90"
             >
-              {isSubmitting ? <Loader2 /> : "Sign Up"}
+              {isPending ? <Loader2 className="animate-spin" /> : "Sign Up"}
             </Button>
             <div className="text-sm text-muted-foreground">
               Already have an account?{" "}

@@ -103,6 +103,7 @@ export const googleLogin = (req, res) => {
     throw new Error("No user found");
   }
   generateToken(req.user._id, res);
+  res.redirect("http://localhost:5173/profile");
   res.status(200).json({
     message: "Google login successful",
   });

@@ -18,9 +18,10 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Mail, Lock, BookUser, Loader2 } from "lucide-react";
 import GoogleIconUrl from "../assets/google-icon-logo.svg";
 import { loginUser } from "../api/auth";
+import { useMutation } from "@tanstack/react-query";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address").min(1, "Email is required"),
+  email: z.email("Invalid email address").min(1, "Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -28,28 +29,37 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: loginUser,
+    onSuccess: (data) => {
+      console.log("Signup successful!", data);
+      navigate("/");
+    },
+    onError: (error) => {
+      setError("root", {
+        message:
+          error.response?.data?.message || "An unexpected error occurred.",
+      });
+      console.error("Sign up error:", error);
+    },
+  });
+
   const {
     register,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data) => {
-    try {
-      const response = await loginUser(data);
-      console.log("Login successful!", response);
-      navigate("/dashboard");
-    } catch (error) {
-      setError("root", {
-        message:
-          error.response?.data?.message ||
-          "Invalid email or password. Please try again.",
-      });
-      console.error("Login error:", error);
-    }
+    mutate(data);
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:3000/api/auth/google";
+    navigate("/profile"); // Redirect to home after initiating Google login
   };
 
   return (
@@ -78,6 +88,7 @@ const LoginForm = () => {
               variant="outline"
               className="w-full flex items-center justify-center h-11"
               type="button"
+              onClick={handleGoogleLogin}
             >
               <img
                 src={GoogleIconUrl}
@@ -162,9 +173,9 @@ const LoginForm = () => {
             <Button
               type="submit"
               className="w-full h-11 text-base"
-              disabled={isSubmitting}
+              disabled={isPending}
             >
-              {isSubmitting ? <Loader2 className="animate-spin" /> : "Login"}
+              {isPending ? <Loader2 className="animate-spin" /> : "Login"}
             </Button>
             <div className="text-sm text-muted-foreground">
               Don't have an account?{" "}

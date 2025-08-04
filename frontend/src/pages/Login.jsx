@@ -1,26 +1,47 @@
-import React from "react";
-import LoginForm from "@/components/LoginForm"; // Make sure the path is correct
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "../api/auth";
+
+import { Loader2 } from "lucide-react";
+import LoginForm from "../components/LoginForm";
 
 const LoginPage = () => {
-  return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      {/* Left Side: Branding and Welcome Message */}
-      <div className="hidden bg-zinc-100 lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
-        <div className="max-w-md">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
-            Welcome Back to Your Blog
-          </h1>
-          <p className="mt-4 text-lg text-zinc-600">
-            Continue your journey and share your next great story with the
-            world.
-          </p>
-        </div>
-      </div>
+  const navigate = useNavigate();
 
-      {/* Right Side: The Login Form */}
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <LoginForm />
+  // This query checks if a user is already logged in.
+  const { data: currentUser, isLoading } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: getMe,
+    retry: false, // Don't retry if the user is not logged in (which is expected)
+  });
+
+  // This effect runs when the query finishes. If a user is found, it redirects.
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/");
+    }
+  }, [currentUser, navigate]);
+
+  // While checking the auth status, display a full-screen loader.
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  // If a user is found, render nothing while the useEffect handles the redirect.
+  // This prevents the form from flashing on the screen for logged-in users.
+  if (currentUser) {
+    return null;
+  }
+
+  // If loading is finished and there's no user, it's safe to show the form.
+  return (
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <LoginForm />
     </div>
   );
 };

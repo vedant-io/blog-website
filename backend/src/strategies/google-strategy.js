@@ -24,23 +24,40 @@ export default passport.use(
       const email = emails[0].value;
 
       try {
+        // 1. Check if the user already exists with this Google ID
         let user = await User.findOne({ googleId: id });
-
         if (user) {
           return done(null, user);
         }
 
+        // 2. Check if the user already exists with this email
         user = await User.findOne({ email });
-
         if (user) {
+          // If they exist, link their Google ID to their existing account
           user.googleId = id;
           await user.save();
           return done(null, user);
         }
 
+        // 3. Handle new user creation and potential username conflicts
+        let newUsername = displayName;
+        let existingUserWithUsername = await User.findOne({
+          username: newUsername,
+        });
+
+        // If the username already exists, create a unique one
+        while (existingUserWithUsername) {
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000); // Generate a 4-digit number
+          newUsername = `${displayName}${randomSuffix}`;
+          existingUserWithUsername = await User.findOne({
+            username: newUsername,
+          });
+        }
+
+        // 4. Create the new user with a guaranteed unique username
         const newUser = new User({
           googleId: id,
-          username: displayName,
+          username: newUsername,
           email: email,
         });
 

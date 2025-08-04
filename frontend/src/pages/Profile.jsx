@@ -3,42 +3,52 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import PostCard from "@/components/PostCard";
 import { Separator } from "@/components/ui/separator";
-import { Mail, CalendarDays } from "lucide-react";
+import { Mail, CalendarDays, Loader2 } from "lucide-react";
+import { useQuery, useQueries } from "@tanstack/react-query";
+import { getMe } from "../api/auth";
+import { getPostById } from "../api/post";
+import { Link } from "react-router-dom";
 
 const ProfilePage = () => {
-  // Placeholder data - you will replace this with the logged-in user's data
-  const user = {
-    username: "Jane Doe",
-    email: "jane.doe@example.com",
-    createdAt: "2025-08-01T10:00:00Z",
-  };
+  // 1. Fetch the current logged-in user's data
+  const {
+    data: currentUser,
+    isLoading: isUserLoading,
+    isError: isUserError,
+  } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: getMe,
+    retry: false, // Don't retry if the user is not logged in
+  });
 
-  // Placeholder data for the user's posts
-  const userPosts = [
-    {
-      id: 1,
-      title: "The Art of Minimalist Design",
-      snippet:
-        "Discover how less can be more in modern web development, creating clean and intuitive user experiences...",
-      author: { username: "Jane Doe" },
-      createdAt: "2025-08-03T12:00:00Z",
-    },
-    {
-      id: 7,
-      title: "A Personal Journey into Blogging",
-      snippet:
-        "Exploring the reasons why starting a personal blog can be a rewarding experience for any developer...",
-      author: { username: "Jane Doe" },
-      createdAt: "2025-06-15T12:00:00Z",
-    },
-  ];
+  // 2. Get the array of post IDs from the user data
+  const postIds = currentUser?.posts || [];
+
+  // 3. Fetch the full details for each post ID in parallel
+  const postQueries = useQueries({
+    queries: postIds.map((postId) => {
+      return {
+        queryKey: ["post", postId],
+        queryFn: () => getPostById(postId),
+      };
+    }),
+  });
 
   const formatDate = (dateString) => {
+    if (!dateString) return "";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
+  };
+
+  const createSnippet = (content, length = 150) => {
+    if (!content) return "";
+    if (content.length <= length) {
+      return content;
+    }
+    return content.slice(0, length) + "...";
   };
 
   const containerVariants = {
@@ -58,9 +68,46 @@ const ProfilePage = () => {
     },
   };
 
+  // Handle loading state
+  if (isUserLoading) {
+    return (
+      <>
+        <Navbar isAuthenticated={false} />
+        <div className="flex justify-center items-center h-[calc(100vh-4rem)]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      </>
+    );
+  }
+
+  // Handle error state (e.g., user is not logged in)
+  if (isUserError || !currentUser) {
+    return (
+      <>
+        <Navbar isAuthenticated={false} />
+        <div className="text-center py-16">
+          <h3 className="text-xl font-semibold">
+            Please log in to view your profile.
+          </h3>
+          <Link
+            to="/login"
+            className="text-primary underline mt-2 inline-block"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  // Filter out posts that are still loading or have errors
+  const userPosts = postQueries
+    .filter((query) => query.isSuccess && query.data)
+    .map((query) => query.data);
+
   return (
     <>
-      <Navbar />
+      <Navbar isAuthenticated={true} />
       <main className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Left Column: User Profile Information */}
@@ -73,18 +120,18 @@ const ProfilePage = () => {
             <div className="p-6 bg-zinc-100/70 dark:bg-zinc-800/70 rounded-lg">
               <div className="flex flex-col items-center text-center">
                 <div className="h-24 w-24 rounded-full bg-primary flex items-center justify-center text-4xl font-bold text-primary-foreground mb-4">
-                  {user.username.charAt(0)}
+                  {currentUser.username.charAt(0).toUpperCase()}
                 </div>
-                <h2 className="text-2xl font-bold">{user.username}</h2>
+                <h2 className="text-2xl font-bold">{currentUser.username}</h2>
                 <Separator className="my-6" />
                 <div className="space-y-4 text-left w-full">
                   <div className="flex items-center text-sm">
                     <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
-                    <span>{user.email}</span>
+                    <span>{currentUser.email}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <CalendarDays className="h-4 w-4 mr-3 text-muted-foreground" />
-                    <span>Joined on {formatDate(user.createdAt)}</span>
+                    <span>Joined on {formatDate(currentUser.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -104,11 +151,11 @@ const ProfilePage = () => {
             {userPosts.length > 0 ? (
               userPosts.map((post) => (
                 <PostCard
-                  key={post.id}
+                  key={post._id}
                   post={{
-                    id: post.id,
+                    id: post._id,
                     title: post.title,
-                    snippet: post.snippet,
+                    snippet: createSnippet(post.content),
                     author: post.author.username,
                     date: formatDate(post.createdAt),
                   }}
