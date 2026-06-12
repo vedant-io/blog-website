@@ -18,7 +18,7 @@ app.use(
     // Replace this with the actual URL of your frontend
     origin: "http://localhost:8080",
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 app.use(cookieParser());
@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to the Blog API");
 });
 
-app.listen(3000, async () => {
+app.listen(3001, async () => {
   await connectToDB();
-  console.log("Server is running on http://localhost:3000");
+  console.log("Server is running on http://localhost:3001");
 });
