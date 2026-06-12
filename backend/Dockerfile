@@ -15,9 +15,6 @@ RUN npm ci --only=production
 # Copy the rest of your application source code
 COPY . .
 
-# Expose the port that your application listens on
-EXPOSE 3000
-
 # The command to start the application in production.
 # We use 'node' directly instead of 'npm run dev' which is for development.
 CMD ["node", "./src/index.js"]

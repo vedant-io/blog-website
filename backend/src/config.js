@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const config = {
+  port: process.env.PORT,
   sessionSecret: process.env.SESSION_SECRET,
   googleClientID: process.env.CLIENT_ID,
   googleClientSecret: process.env.CLIENT_SECRET,

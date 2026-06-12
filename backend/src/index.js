@@ -33,7 +33,11 @@ app.get("/", (req, res) => {
   res.send("Welcome to the Blog API");
 });
 
-app.listen(3001, async () => {
+if (!config.port) {
+  throw new Error("PORT environment variable is required but not provided.");
+}
+
+app.listen(config.port, async () => {
   await connectToDB();
-  console.log("Server is running on http://localhost:3001");
+  console.log(`Server is running on http://localhost:${config.port}`);
 });
