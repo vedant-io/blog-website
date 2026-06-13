@@ -58,7 +58,7 @@ const LoginForm = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:3000/api/auth/google";
+    window.location.href = "https://blog-api.vedantd.in/api/auth/google";
     navigate("/profile"); // Redirect to home after initiating Google login
   };
 

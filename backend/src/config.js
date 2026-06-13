@@ -9,6 +9,7 @@ const config = {
   googleCallbackURL: process.env.REDIRECT_URI,
   jwtSecret: process.env.JWT_SECRET,
   mongoURI: process.env.DATABASE_URL,
+  frontend: process.env.FRONTEND_URL,
 };
 
 export default config;
